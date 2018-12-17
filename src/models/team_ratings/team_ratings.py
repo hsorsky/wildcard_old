@@ -3,14 +3,14 @@ from collections import defaultdict
 
 import numpy as np
 
-from utils import vcalc_poisson_lhood
+from src.utils import vcalc_poisson_lhood
 
 
 class TeamRatings:
 
 	def __init__(self, params):
 		self.current_ratings = defaultdict(dict)
-		# self.historical_ratings = defaultdict(dict)
+		self.historical_ratings = defaultdict(dict)
 		self.params = params
 
 		# -- hidden state variables -- #
@@ -44,8 +44,13 @@ class TeamRatings:
 		self.current_ratings[team_id]['{}_att_variance'.format(ha)] = att_var
 		self.current_ratings[team_id]['{}_def_variance'.format(ha)] = def_var
 
-	def _update_historical_ratings(self, team_id, gameweek, attack, defence, variance, r_type, ishome):
-		pass
+	def _update_historical_ratings(self, team_id, gameweek, attack, defence, r_type, ishome):
+		ha = 'home' if ishome else 'away'
+		ah = 'away' if ishome else 'home'
+		self.historical_ratings[(team_id, gameweek)]['{}_att_{}'.format(ha, r_type)] = attack
+		self.historical_ratings[(team_id, gameweek)]['{}_def_{}'.format(ha, r_type)] = defence
+		self.historical_ratings[(team_id, gameweek)]['{}_att_{}'.format(ah, r_type)] = np.NaN
+		self.historical_ratings[(team_id, gameweek)]['{}_def_{}'.format(ah, r_type)] = np.NaN
 
 	def get_ratings(self, h_id, a_id):
 		try:
@@ -79,6 +84,9 @@ class TeamRatings:
 		self.xk_minus = np.array([h_att, h_def, a_att, a_def])
 		self.Pk_minus = np.diag(np.array([h_att_var, h_def_var, a_att_var, a_def_var]) + self.Qk)
 
+		self._update_historical_ratings(h_id, gw, h_att, h_def, 'prior', True)
+		self._update_historical_ratings(a_id, gw, a_att, a_def, 'prior', False)
+
 		# -- update -- #
 		self.predictions = self._predict(l_h, l_a)
 		self.Rk = np.diag(self.predictions)
@@ -111,6 +119,9 @@ class TeamRatings:
 			def_var=a_def_var,
 			ishome=False
 		)
+
+		self._update_historical_ratings(h_id, gw, h_att, h_def, 'posterior', True)
+		self._update_historical_ratings(a_id, gw, a_att, a_def, 'posterior', False)
 
 		log_lhoods = np.log(vcalc_poisson_lhood(self.predictions, self.observations))
 		self.tot_log_lhood += np.sum(log_lhoods)

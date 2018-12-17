@@ -3,14 +3,14 @@ from collections import defaultdict
 
 import numpy as np
 
-from utils import vcalc_poisson_lhood
+from src.utils import vcalc_poisson_lhood
 
 
 class LeagueRatings:
 
 	def __init__(self, params):
 		self.current_ratings = {}
-		# self.historical_ratings = defaultdict(dict)
+		self.historical_ratings = defaultdict(lambda: defaultdict(dict))
 		self.params = params
 
 		# -- hidden state variables -- #
@@ -37,9 +37,11 @@ class LeagueRatings:
 		self.tot_log_lhood = 0
 		self.n_observations = 0
 
-	def _update_current_ratings(self, home, away):
+	def _update_current_ratings(self, home, away, home_var, away_var):
 		self.current_ratings['home'] = home
 		self.current_ratings['away'] = away
+		self.current_ratings['home_var'] = home_var
+		self.current_ratings['away_var'] = away_var
 
 	def _update_historical_ratings(self, team_id, gameweek, attack, defence, variance, r_type, ishome):
 		pass
@@ -80,6 +82,8 @@ class LeagueRatings:
 		log_lhoods = np.log(vcalc_poisson_lhood(self.predictions, self.observations))
 		self.tot_log_lhood += np.sum(log_lhoods)
 		self.n_observations += len(log_lhoods)
+
+		self._update_current_ratings(*self.xk, *np.diag(self.Pk))
 
 	def _generate_Hk(self, home_att, home_def, away_att, away_def):
 		home_ratings = np.array([home_att * away_def, np.zeros(len(home_att))]).T.ravel()

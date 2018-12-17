@@ -3,13 +3,13 @@ import math
 import numpy as np
 import pandas as pd
 
-from src.load.load import load
-from src.models.team_att_def.team_ratings import TeamRatings
-from src.models.team_att_def.league_ratings import LeagueRatings
-from tuners.tuner_params import load_params
+# from src.load.load import load
+from src.models.team_ratings.team_ratings import TeamRatings
+from src.models.team_ratings.league_ratings import LeagueRatings
+from src.tuners.tuner_params import load_params
 
 
-class AttDefBacktest:
+class TeamRatingsBacktest:
 
 	def __init__(self, params, home_goals, away_goals, home_ids, away_ids, groupby_dict):
 		self.home_goals = home_goals
@@ -89,30 +89,32 @@ class AttDefBacktest:
 		return cost
 
 
-def run_backtest():
-	data = load()['match_scores']
-	home_ids = data.home_id.values
-	away_ids = data.away_id.values
-	home_goals = data.fthg.values
-	away_goals = data.ftag.values
-
-	groupby_dict = data.groupby('gw').indices
-
-	params = load_params()
-
-	bt = AttDefBacktest(
-		params=params,
-		home_goals=home_goals,
-		away_goals=away_goals,
-		home_ids=home_ids,
-		away_ids=away_ids,
-		groupby_dict=groupby_dict
-	)
-
-	bt.run_backtest()
-
-	print(bt.cost)
-
-
-if __name__ == '__main__':
-	run_backtest()
+# def run_backtest():
+# 	data = load()['match_scores']
+# 	home_ids = data.home_id.values
+# 	away_ids = data.away_id.values
+# 	home_goals = data.fthg.values
+# 	away_goals = data.ftag.values
+#
+# 	groupby_dict = data.groupby('gw').indices
+#
+# 	params = load_params()
+#
+# 	bt = AttDefBacktest(
+# 		params=params,
+# 		home_goals=home_goals,
+# 		away_goals=away_goals,
+# 		home_ids=home_ids,
+# 		away_ids=away_ids,
+# 		groupby_dict=groupby_dict
+# 	)
+#
+# 	bt.run_backtest()
+#
+# 	print(bt.cost)
+# 	return bt
+#
+#
+# if __name__ == '__main__':
+#
+# 	run_backtest()
