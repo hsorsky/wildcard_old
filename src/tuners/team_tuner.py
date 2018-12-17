@@ -1,7 +1,7 @@
 import numpy as np
 
 from src.load.load import load
-from src.models.team_att_def.att_def_backtest import AttDefBacktest
+from src.models.team_ratings.team_ratings_backtest import TeamRatingsBacktest
 from src.logger import logger
 from src.tuners.tuner import Tuner
 from src.utils import CrazyParameters
@@ -35,7 +35,7 @@ class TeamTuner(Tuner):
 
 	def compute_emll(self, params):
 		try:
-			bt = AttDefBacktest(
+			bt = TeamRatingsBacktest(
 				params=params,
 				home_goals=self.home_goals,
 				away_goals=self.away_goals,
@@ -75,6 +75,8 @@ def optimise_teams(method='Nelder-Mead', only_do=[], fixed_params=[], tol=1e-7, 
 	)
 
 	tuner.run_tuner()
+
+	return tuner
 
 
 if __name__ == '__main__':
