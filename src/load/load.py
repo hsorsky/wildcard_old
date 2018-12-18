@@ -6,7 +6,7 @@ import numpy as np
 
 from src.models.team_ratings.team_ratings_backtest import TeamRatingsBacktest
 from src.load import get_gameweek_start_dates
-from src.utils import camel_to_snake, timer
+from src.utils import camel_to_snake, timer, filter_data
 from src.get_id_name_mappings import generate_id_name_mappings
 
 from config import MATCH_DATA_PATH, FPL_DATA_PATH
@@ -15,10 +15,11 @@ from src.tuners.tuner_params import load_params
 
 class Loader:
 
-	def __init__(self, add_team_ratings):
+	def __init__(self, add_team_ratings=True, add_team_assists=True):
 		self.data = {}
 		self.maps = {}
 		self.add_team_ratings = add_team_ratings
+		self.add_team_assists = add_team_assists
 		# TODO implement cache path
 
 	def run_loader(self):
@@ -41,6 +42,9 @@ class Loader:
 		with timer("adding team IDs", __file__):
 			self.add_player_team_id_to_player_data()
 
+		with timer("adding player positions", __file__):
+			self.add_player_positions()
+
 		# TODO: implement player % filtering
 
 		if self.add_team_ratings:
@@ -48,6 +52,16 @@ class Loader:
 				self.add_att_def_scores_to_data()
 			with timer("merging att def scores", __file__):
 				self.merge_att_def_ratings_to_all_player_data()
+
+		if self.add_team_assists:
+			with timer("adding assists", __file__):
+				self.add_assists_to_data()
+
+		self.data['all_player_data'] = filter_data(
+			self.data['all_player_data'],
+			"corresponding to rows where less than 30 minutes played",
+		self.data['all_player_data'].minutes > 30
+		)
 
 		return self.data
 
@@ -161,6 +175,10 @@ class Loader:
 		self.maps['date_to_gw'] = temp_series.to_dict()['index']
 		self.maps['team_to_id'], \
 		self.maps['id_to_team'] = generate_id_name_mappings(self.data['fpl_summary_json'])
+		self.maps['pid_to_pos'] = {
+			x['id']: x['element_type'] for x in self.data['fpl_summary_json']['elements']
+		}
+
 
 	def add_att_def_scores_to_data(self):
 		data = self.data['match_scores']
@@ -229,11 +247,37 @@ class Loader:
 			self.data['all_player_data']['opponent_team_id']
 		)
 
+	def add_assists_to_data(self):
+		data = self.data['all_player_data']
+		gw_teamid_oppid_to_assists_dict = (
+			data.groupby(['gameweek', 'player_team_id', 'opposition_team_id'])
+				.assists
+				.sum()
+				.to_dict()
+		)
 
-def load():
-	loader = Loader()
+		self.data['all_player_data']['player_team_assists'] = list(
+			map(
+				gw_teamid_oppid_to_assists_dict.get,
+				list(
+					zip(
+						data['gameweek'],
+						data['player_team_id'],
+						data['opposition_team_id']
+					)
+				)
+			)
+		)
+
+	def add_player_positions(self):
+		self.data['all_player_data']['position_id'] = self.data['all_player_data'].player_id.map(self.maps['pid_to_pos'])
+
+
+def load(add_team_ratings=True, add_team_assists=True):
+	loader = Loader(add_team_ratings, add_team_assists)
 	loader.run_loader()
 	return loader.data
+
 
 if __name__ == '__main__':
 	load()
