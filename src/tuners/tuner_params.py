@@ -4,6 +4,8 @@ import json
 import numpy as np
 
 from params.league_kf_params import league_kf_params
+from params.player_assist_params import player_assist_params
+from params.player_goal_params import player_goal_params
 from params.team_kf_params import team_kf_params
 from src.logger import logger
 from src.paths import paths
@@ -109,7 +111,19 @@ class TunerParams:
 
 		)
 		for what in (		# non-negative
+			"player_goal_x0_gks",
+			"player_goal_x0_def",
+			"player_goal_x0_mid",
+			"player_goal_x0_att",
+			"player_goal_Q",
+			"player_goal_P0",
 
+			"player_assist_x0_gks",
+			"player_assist_x0_def",
+			"player_assist_x0_mid",
+			"player_assist_x0_att",
+			"player_assist_Q",
+			"player_assist_P0",
 		):
 			bd[what] = (1e-7, None)
 		for what in (		# in (0,1)
@@ -187,8 +201,10 @@ def load_params():
 	"""
 	team_kf = team_kf_params
 	league_kf = league_kf_params
-	output = {**team_kf, **league_kf}
-	assert len(output) == len(team_kf) + len(league_kf), \
+	goal_kf = player_goal_params
+	assist_kf = player_assist_params
+	output = {**team_kf, **league_kf, **goal_kf, **assist_kf}
+	assert len(output) == len(team_kf) + len(league_kf) + len(goal_kf) + len(assist_kf), \
 		'Duplicate parameter values found in different parameter files'
 	return output
 
