@@ -21,6 +21,8 @@ class PlayerRatingsBacktest:
 	def run_backtest(self):
 		for pid, player_goals, player_assists, team_goals, team_assists, player_position in \
 				zip(self.pids, self.player_goals, self.player_assists, self.team_goals, self.team_assists, self.positions):
+			if player_position == 1:
+				continue
 
 			if team_goals > 0:
 				self.goal_ratings.run_update_step(pid, player_goals, team_goals, player_position)
