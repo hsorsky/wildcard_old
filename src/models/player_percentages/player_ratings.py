@@ -1,14 +1,13 @@
 import math
 from collections import defaultdict
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 
-class PlayerRatings:
+class PlayerRatings(ABC):
 
-	def __init__(self, params, pid_to_position_map):
+	def __init__(self, params):
 		self.current_ratings = defaultdict(dict)
 		self.historical_ratings = defaultdict(lambda: defaultdict(dict))
 		self.params = params
-		self.pid_pos_map = pid_to_position_map
 
 		# -- hidden state variables -- #
 		self.xk_minus = None
@@ -30,7 +29,7 @@ class PlayerRatings:
 		self.n_obs = 0
 
 	@abstractmethod
-	def run_update_step(self, pid, obs, n_goals_or_assists):
+	def run_update_step(self, pid, obs, n_goals_or_assists, position):
 		pass
 
 	def _get_player_data(self, pid, position):
@@ -54,19 +53,17 @@ class PlayerRatings:
 
 class PlayerGoalRatings(PlayerRatings):
 
-	def __init__(self, params, pid_to_position_map):
-		super().__init__(params, pid_to_position_map)
+	def __init__(self, params):
+		super().__init__(params)
 
 		self.x0_gks = self.params['player_goal_x0_gks']
 		self.x0_def = self.params['player_goal_x0_def']
 		self.x0_mid = self.params['player_goal_x0_mid']
 		self.x0_att = self.params['player_goal_x0_att']
-		self.P0 = self.params['player_goal_P0']
-		self.Q = self.params['player_goal_Q']
+		self.P0 = self.params['player_goal_P0'] ** 2
+		self.Q = self.params['player_goal_Q'] ** 2
 
-	def run_update_step(self, pid, obs, n_goals):
-		position = self.pid_pos_map[pid]
-
+	def run_update_step(self, pid, obs, n_goals, position):
 		# -- predict -- #
 		self.xk_minus, self.Pk_minus = self._get_player_data(pid, position)
 
@@ -95,19 +92,17 @@ class PlayerGoalRatings(PlayerRatings):
 
 class PlayerAssistRatings(PlayerRatings):
 
-	def __init__(self, params, pid_to_position_map):
-		super().__init__(params, pid_to_position_map)
+	def __init__(self, params):
+		super().__init__(params)
 
 		self.x0_gks = self.params['player_assist_x0_gks']
 		self.x0_def = self.params['player_assist_x0_def']
 		self.x0_mid = self.params['player_assist_x0_mid']
 		self.x0_att = self.params['player_assist_x0_att']
-		self.P0 = self.params['player_assist_P0']
-		self.Q = self.params['player_assist_Q']
+		self.P0 = self.params['player_assist_P0'] ** 2
+		self.Q = self.params['player_assist_Q'] ** 2
 
-	def run_update_step(self, pid, obs, n_assists):
-		position = self.pid_pos_map[pid]
-
+	def run_update_step(self, pid, obs, n_assists, position):
 		# -- predict -- #
 		self.xk_minus, self.Pk_minus = self._get_player_data(pid, position)
 
