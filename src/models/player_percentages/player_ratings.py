@@ -64,8 +64,12 @@ class PlayerGoalRatings(PlayerRatings):
 		self.Q = self.params['player_goal_Q'] ** 2
 
 	def run_update_step(self, pid, obs, n_goals, position):
+
+		prev_rating, prev_var = self._get_player_data(pid, position)
+
 		# -- predict -- #
-		self.xk_minus, self.Pk_minus = self._get_player_data(pid, position)
+		self.xk_minus = prev_rating
+		self.Pk_minus = prev_var + self.Q
 
 		# -- save prior -- #
 		pass  # TODO: implement
@@ -78,7 +82,7 @@ class PlayerGoalRatings(PlayerRatings):
 		self.Sk = self.Hk * self.Pk_minus * self.Hk + self.Rk
 		self.Kk = self.Pk_minus * self.Hk / self.Sk
 
-		self.xk = self.xk_minus + self.Kk * self.yk
+		self.xk = max(1e-6, self.xk_minus + self.Kk * self.yk)
 		self.Pk = (1 - self.Kk * self.Hk) * self.Pk_minus
 
 		# -- save prior -- #
@@ -103,8 +107,12 @@ class PlayerAssistRatings(PlayerRatings):
 		self.Q = self.params['player_assist_Q'] ** 2
 
 	def run_update_step(self, pid, obs, n_assists, position):
+
+		prev_rating, prev_var = self._get_player_data(pid, position)
+
 		# -- predict -- #
-		self.xk_minus, self.Pk_minus = self._get_player_data(pid, position)
+		self.xk_minus = prev_rating
+		self.Pk_minus = prev_var + self.Q
 
 		# -- save prior -- #
 		pass  # TODO: implement
@@ -116,7 +124,7 @@ class PlayerAssistRatings(PlayerRatings):
 		self.Sk = self.Hk * self.Pk_minus * self.Hk + self.Rk
 		self.Kk = self.Pk_minus * self.Hk / self.Sk
 
-		self.xk = self.xk_minus + self.Kk * self.yk
+		self.xk = max(1e-6, self.xk_minus + self.Kk * self.yk)
 		self.Pk = (1 - self.Kk * self.Hk) * self.Pk_minus
 
 		# -- save posterior -- #
