@@ -6,7 +6,7 @@ from src.models.player_percentages.player_ratings import PlayerGoalRatings, Play
 class PlayerRatingsBacktest:
 	# TODO: split goals and assists backtests as they're completely seperate (should speed up tuning)
 
-	def __init__(self, params, pids, player_goals, player_assists, team_goals, team_assists, positions):
+	def __init__(self, params, pids, player_goals, player_assists, team_goals, team_assists, positions, gameweeks):
 		self.params = params
 		self.pids = pids
 		self.player_goals = player_goals
@@ -14,20 +14,24 @@ class PlayerRatingsBacktest:
 		self.team_goals = team_goals
 		self.team_assists = team_assists
 		self.positions = positions
+		self.gameweeks = gameweeks
 
 		self.goal_ratings = PlayerGoalRatings(self.params)
 		self.assist_ratings = PlayerAssistRatings(self.params)
 
 	def run_backtest(self):
-		for pid, player_goals, player_assists, team_goals, team_assists, player_position in \
-				zip(self.pids, self.player_goals, self.player_assists, self.team_goals, self.team_assists, self.positions):
+		for pid, player_goals, player_assists, team_goals, \
+			team_assists, player_position, gameweek in \
+				zip(self.pids, self.player_goals, self.player_assists,
+					self.team_goals, self.team_assists, self.positions,
+					self.gameweeks):
 			if player_position == 1:
 				continue
 
 			if team_goals > 0:
-				self.goal_ratings.run_update_step(pid, player_goals, team_goals, player_position)
+				self.goal_ratings.run_update_step(gameweek, pid, player_goals, team_goals, player_position)
 				if team_assists > 0:
-					self.assist_ratings.run_update_step(pid, player_assists, team_assists, player_position)
+					self.assist_ratings.run_update_step(gameweek, pid, player_assists, team_assists, player_position)
 
 	@property
 	def goal_prop(self):

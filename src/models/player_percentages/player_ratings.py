@@ -1,12 +1,13 @@
 import math
 from collections import defaultdict
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
+
 
 class PlayerRatings(ABC):
 
 	def __init__(self, params):
 		self.current_ratings = defaultdict(dict)
-		self.historical_ratings = defaultdict(lambda: defaultdict(dict))
+		self.historical_ratings = defaultdict(dict)
 		self.params = params
 
 		# -- hidden state variables -- #
@@ -29,8 +30,8 @@ class PlayerRatings(ABC):
 		self.n_obs = 0
 
 	@abstractmethod
-	def run_update_step(self, pid, obs, n_goals_or_assists, position):
-		pass
+	def run_update_step(self, gameweek, pid, obs, n_goals_or_assists, position):
+		return NotImplemented
 
 	def _get_player_data(self, pid, position):
 		try:
@@ -50,6 +51,12 @@ class PlayerRatings(ABC):
 		self.current_ratings[pid]['rating'] = rating
 		self.current_ratings[pid]['variance'] = var
 
+	def _update_historical_ratings(self, pid, gw, rating, var):
+		self.historical_ratings[(pid, gw)] = dict(
+			rating=rating,
+			var=var,
+		)
+
 
 class PlayerGoalRatings(PlayerRatings):
 
@@ -63,7 +70,7 @@ class PlayerGoalRatings(PlayerRatings):
 		self.P0 = self.params['player_goal_P0'] ** 2
 		self.Q = self.params['player_goal_Q'] ** 2
 
-	def run_update_step(self, pid, obs, n_goals, position):
+	def run_update_step(self, gameweek, pid, obs, n_goals, position):
 
 		prev_rating, prev_var = self._get_player_data(pid, position)
 
@@ -72,7 +79,7 @@ class PlayerGoalRatings(PlayerRatings):
 		self.Pk_minus = prev_var + self.Q
 
 		# -- save prior -- #
-		pass  # TODO: implement
+		self._update_historical_ratings(pid, gameweek, self.xk_minus, self.Pk_minus)
 
 		# -- update -- #
 		# self.Hk = players_team_att * opp_def * league_avg
@@ -86,7 +93,7 @@ class PlayerGoalRatings(PlayerRatings):
 		self.Pk = (1 - self.Kk * self.Hk) * self.Pk_minus
 
 		# -- save prior -- #
-		pass  # TODO: implement
+		self._update_historical_ratings(pid, gameweek, self.xk, self.Pk)
 		self._update_current_ratings(pid, self.xk, self.Pk)
 
 		# -- calc lhood -- #
@@ -106,7 +113,7 @@ class PlayerAssistRatings(PlayerRatings):
 		self.P0 = self.params['player_assist_P0'] ** 2
 		self.Q = self.params['player_assist_Q'] ** 2
 
-	def run_update_step(self, pid, obs, n_assists, position):
+	def run_update_step(self, gameweek, pid, obs, n_assists, position):
 
 		prev_rating, prev_var = self._get_player_data(pid, position)
 
@@ -115,7 +122,7 @@ class PlayerAssistRatings(PlayerRatings):
 		self.Pk_minus = prev_var + self.Q
 
 		# -- save prior -- #
-		pass  # TODO: implement
+		self._update_historical_ratings(pid, gameweek, self.xk_minus, self.Pk_minus)
 
 		# -- update -- #
 		self.Hk = n_assists
@@ -128,7 +135,7 @@ class PlayerAssistRatings(PlayerRatings):
 		self.Pk = (1 - self.Kk * self.Hk) * self.Pk_minus
 
 		# -- save posterior -- #
-		pass  # TODO: implement
+		self._update_historical_ratings(pid, gameweek, self.xk, self.Pk)
 		self._update_current_ratings(pid, self.xk, self.Pk)
 
 		# -- calc lhood -- #
